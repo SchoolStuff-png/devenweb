@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tetris</title>
+    <style>
+        body { background-color: #000; color: #fff; text-align: center; font-family: sans-serif; }
+        canvas { width: 640px; height: 480px; border: 2px solid #333; background: #111; }
+    </style>
+</head>
+<body>
+
+    <h1>Loading Tetris Worlds...</h1>
+    
+    <!-- The canvas element required by vba.js to output video -->
+    <canvas id="canvas" oncontextmenu="event.preventDefault()"></canvas>
+
+    <script>
+        // Setup the configuration object that vba.js looks for upon initialization
+        var Module = {
+            noInitialRun: false,
+            
+            // 1. Tell the emulator core exactly what file to boot at startup
+            arguments: ["Tetris Worlds (USA).gba"], 
+            
+            canvas: document.getElementById('canvas'),
+            
+            // 2. Pre-load the ROM file from your web server into the emulator's memory space
+            preRun: [function() {
+                console.log("Downloading ROM file from server into virtual memory...");
+                
+                // Syntax: FS_createPreloadedFile(virtual_directory, virtual_name, local_server_url, can_read, can_write)
+                Module.FS_createPreloadedFile(
+                    "/", 
+                    "Tetris Worlds (USA).gba", 
+                    "Tetris Worlds (USA).gba", // Assumes the ROM is sitting in the same folder as this index.html
+                    true, 
+                    false
+                );
+            }],
+            
+            postRun: [function() {
+                console.log("Emulator initialized successfully!");
+                document.querySelector('h1').innerText = "Playing: Tetris Worlds";
+            }]
+        };
+    </script>
+
+    <!-- 3. Load your emulator engine script last so it reads the configuration above -->
+    <script async src="vba_next.js"></script>
+
+</body>
+</html>
