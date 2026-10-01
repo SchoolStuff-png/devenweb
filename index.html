@@ -9,11 +9,13 @@
 <body>
   <div class="purple-checker-banner">
     <div class="banner-content">
-      <!-- Duplicated sets to ensure a seamless infinite loop from the center -->
+      <!-- Group 1: The original text set -->
+      <span><strong>Deven Website</strong> &mdash; Best Website </span>
+      <span><strong>Evil</strong> &mdash; Banner </span>
+      
+      <!-- Group 2: The exact duplicate set to allow a seamless, jump-free loop -->
       <span><strong>Deven Website</strong> &mdash; Hi! </span>
-      <span><strong>Deven Website</strong> &mdash; Banner </span>
-      <span><strong>Deven Website</strong> &mdash; Hi! </span>
-      <span><strong>Deven Website</strong> &mdash; Banner </span>
+      <span><strong>Deven Website</strong> &mdash; Wow </span>
     </div>
   </div>
   <style>
@@ -49,6 +51,10 @@
       font-size: 16px;
       font-weight: 700;
       z-index: 2;
+      
+      /* Pushes the starting point of the text to the middle of the screen */
+      padding-left: 50vw; 
+      
       /* Animates the text scrolling */
       animation: scrollText 15s linear infinite;
     }
@@ -62,18 +68,16 @@
         background-position: 0 0, 0 12px, 12px -12px, -12px 0px;
       }
       100% {
-        /* Shifts exactly by the background-size to create a seamless infinite loop */
         background-position: 24px 24px, 24px 36px, 36px 12px, 12px 24px;
       }
     }
-    /* Keyframes for the right-to-left scrolling text starting from the middle */
+    /* The core mechanics of a seamless marquee loop */
     @keyframes scrollText {
       0% {
-        /* Starts the content from the exact middle of the screen */
-        transform: translate3d(50vw, 0, 0);
+        transform: translate3d(0, 0, 0);
       }
       100% {
-        /* Loops back cleanly by offsetting the width of the duplicated content */
+        /* Translating exactly -50% aligns the duplicated text perfectly with the starting frame, preventing any jump */
         transform: translate3d(-50%, 0, 0);
       }
     }
