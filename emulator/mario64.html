@@ -24,7 +24,7 @@
         .controls {
             margin-top: 15px;
         }
-        button, input[type="file"] {
+        button {
             padding: 10px;
             background: #222;
             border: 1px solid #555;
@@ -39,9 +39,7 @@
 <body>
 
     <h1>N64 Emulator Web Loader</h1>
-    <div id="status">Waiting for ROM file...</div>
-    
-    <input type="file" id="rom-loader" accept=".z64,.v64,.n64">
+    <div id="status">Initializing...</div>
     
     <canvas id="canvas" oncontextmenu="event.preventDefault()"></canvas>
 
@@ -49,27 +47,55 @@
         <button id="force-save">Force Save Sync</button>
     </div>
 
-    <!-- Ensure mupen64plus.js and its supporting .wasm data sit in the same directory -->
     <script>
         const STATUS_EL = document.getElementById('status');
-        const ROM_INPUT = document.getElementById('rom-loader');
         const SAVE_KEY = 'MUPEN64_MARIO64_SAVE';
-        // Adjust this path if your specific build uses a variant path
         const MEMORY_SAVE_DIR = '/home/web_user/.local/share/mupen64plus/save';
         const SAVE_FILE_NAME = 'Super Mario 64 (USA).eep'; 
+        const ROM_FILE_NAME = 'Mario 64 (USA).z64';
 
-        // Emscripten Module configuration wrapper
-        var Module = {
-            canvas: document.getElementById('canvas'),
-            arguments: ['--nosaveoptions', '/rom.z64'],
-            print: (text) => console.log('Mupen64Plus: ' + text),
-            printErr: (text) => console.error('Mupen64Plus-Error: ' + text),
-            
-            onRuntimeInitialized: function() {
-                STATUS_EL.innerText = "Emulator core loaded. Ready to boot.";
-                setupPersistence();
+        async function autoRun() {
+            try {
+                STATUS_EL.innerText = `Fetching ${ROM_FILE_NAME}...`;
+                const response = await fetch(encodeURI(ROM_FILE_NAME));
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP status ${response.status} - Unable to locate file.`);
+                }
+                
+                const arrayBuffer = await response.arrayBuffer();
+                const romData = new Uint8Array(arrayBuffer);
+
+                STATUS_EL.innerText = "Loading emulator runtime...";
+
+                // Configure Module before importing core JS
+                window.Module = {
+                    canvas: document.getElementById('canvas'),
+                    arguments: ['--nosaveoptions', '/rom.z64'],
+                    print: (text) => console.log('Mupen64Plus: ' + text),
+                    printErr: (text) => console.error('Mupen64Plus-Error: ' + text),
+                    
+                    // Write ROM buffer to Emscripten FS before engine starts
+                    preRun: [function() {
+                        Module.FS.writeFile('/rom.z64', romData);
+                    }],
+                    
+                    onRuntimeInitialized: function() {
+                        STATUS_EL.innerText = "Super Mario 64 is running!";
+                        setupPersistence();
+                    }
+                };
+
+                // Append emulator engine script
+                const script = document.createElement('script');
+                script.src = 'mupen64plus.js';
+                document.body.appendChild(script);
+
+            } catch (error) {
+                STATUS_EL.innerText = "Auto-run error: " + error.message;
+                console.error("Failed to auto-load ROM:", error);
             }
-        };
+        }
 
         // Handles loading existing save elements from localstorage to FS
         function setupPersistence() {
@@ -89,7 +115,7 @@
                     // Write data explicitly into emulator memory path
                     const fullPath = `${MEMORY_SAVE_DIR}/${SAVE_FILE_NAME}`;
                     Module.FS.writeFile(fullPath, uint8Array);
-                    STATUS_EL.innerText = "Previous local save file successfully injected.";
+                    STATUS_EL.innerText = "Super Mario 64 is running! (Save restored)";
                 }
             } catch (e) {
                 console.warn("Save sync initialization note:", e);
@@ -125,31 +151,6 @@
             }
         }
 
-        // Handle ROM selection initialization logic
-        ROM_INPUT.addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            STATUS_EL.innerText = "Processing ROM selection...";
-            const reader = new FileReader();
-            
-            reader.onload = function(event) {
-                const arrayBuffer = event.target.result;
-                const romData = new Uint8Array(arrayBuffer);
-                
-                // Mount ROM directly into virtual root space
-                Module.FS.writeFile('/rom.z64', romData);
-                STATUS_EL.innerText = "Running game...";
-                
-                // Dynamically spin up core engine thread script
-                const script = document.createElement('script');
-                script.src = 'mupen64plus.js'; 
-                document.body.appendChild(script);
-            };
-            
-            reader.readAsArrayBuffer(file);
-        });
-
         // Event binder for explicit safety saves
         document.getElementById('force-save').addEventListener('click', () => {
             syncVirtualSaveToBrowser();
@@ -158,6 +159,9 @@
 
         // Capture window close lifecycle actions
         window.addEventListener('beforeunload', syncVirtualSaveToBrowser);
+
+        // Auto-run when the DOM finishes rendering
+        window.addEventListener('DOMContentLoaded', autoRun);
     </script>
 </body>
 </html>
