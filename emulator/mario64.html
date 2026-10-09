@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mario 64</title>
+    <style>
+        body {
+            background-color: #111;
+            color: #fff;
+            font-family: sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 20px;
+        }
+        #canvas {
+            width: 640px;
+            height: 480px;
+            background-color: #000;
+            border: 2px solid #444;
+            display: block;
+            margin: 20px auto;
+        }
+        .controls {
+            margin-top: 15px;
+        }
+        button, input[type="file"] {
+            padding: 10px;
+            background: #222;
+            border: 1px solid #555;
+            color: white;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        button:hover { background: #333; }
+        #status { color: #aaa; margin: 10px; font-style: italic; }
+    </style>
+</head>
+<body>
+
+    <h1>N64 Emulator Web Loader</h1>
+    <div id="status">Waiting for ROM file...</div>
+    
+    <input type="file" id="rom-loader" accept=".z64,.v64,.n64">
+    
+    <canvas id="canvas" oncontextmenu="event.preventDefault()"></canvas>
+
+    <div class="controls">
+        <button id="force-save">Force Save Sync</button>
+    </div>
+
+    <!-- Ensure mupen64plus.js and its supporting .wasm data sit in the same directory -->
+    <script>
+        const STATUS_EL = document.getElementById('status');
+        const ROM_INPUT = document.getElementById('rom-loader');
+        const SAVE_KEY = 'MUPEN64_MARIO64_SAVE';
+        // Adjust this path if your specific build uses a variant path
+        const MEMORY_SAVE_DIR = '/home/web_user/.local/share/mupen64plus/save';
+        const SAVE_FILE_NAME = 'Super Mario 64 (USA).eep'; 
+
+        // Emscripten Module configuration wrapper
+        var Module = {
+            canvas: document.getElementById('canvas'),
+            arguments: ['--nosaveoptions', '/rom.z64'],
+            print: (text) => console.log('Mupen64Plus: ' + text),
+            printErr: (text) => console.error('Mupen64Plus-Error: ' + text),
+            
+            onRuntimeInitialized: function() {
+                STATUS_EL.innerText = "Emulator core loaded. Ready to boot.";
+                setupPersistence();
+            }
+        };
+
+        // Handles loading existing save elements from localstorage to FS
+        function setupPersistence() {
+            try {
+                // Ensure directories exist recursively inside Emscripten FS
+                Module.FS.mkdirTree(MEMORY_SAVE_DIR);
+                
+                const cachedSave = localStorage.getItem(SAVE_KEY);
+                if (cachedSave) {
+                    // Convert Base64 string back to binary array
+                    const binaryString = atob(cachedSave);
+                    const uint8Array = new Uint8Array(binaryString.length);
+                    for (let i = 0; i < binaryString.length; i++) {
+                        uint8Array[i] = binaryString.charCodeAt(i);
+                    }
+                    
+                    // Write data explicitly into emulator memory path
+                    const fullPath = `${MEMORY_SAVE_DIR}/${SAVE_FILE_NAME}`;
+                    Module.FS.writeFile(fullPath, uint8Array);
+                    STATUS_EL.innerText = "Previous local save file successfully injected.";
+                }
+            } catch (e) {
+                console.warn("Save sync initialization note:", e);
+            }
+
+            // Start reactive auto-saving loops
+            setInterval(syncVirtualSaveToBrowser, 5000); 
+        }
+
+        // Pulls save content from WASM environment storage to LocalStorage
+        function syncVirtualSaveToBrowser() {
+            try {
+                const fullPath = `${MEMORY_SAVE_DIR}/${SAVE_FILE_NAME}`;
+                // Check if target SRAM/EEPROM save file exists
+                const lookup = Module.FS.analyzePath(fullPath);
+                
+                if (lookup.exists) {
+                    const fileData = Module.FS.readFile(fullPath);
+                    
+                    // Convert raw binary back to plain Base64 safely
+                    let binaryStr = '';
+                    const len = fileData.byteLength;
+                    for (let i = 0; i < len; i++) {
+                        binaryStr += String.fromCharCode(fileData[i]);
+                    }
+                    const base64Data = btoa(binaryStr);
+                    
+                    localStorage.setItem(SAVE_KEY, base64Data);
+                    console.log("Auto-save sync completed securely.");
+                }
+            } catch (error) {
+                console.error("Failed background persistence update:", error);
+            }
+        }
+
+        // Handle ROM selection initialization logic
+        ROM_INPUT.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            STATUS_EL.innerText = "Processing ROM selection...";
+            const reader = new FileReader();
+            
+            reader.onload = function(event) {
+                const arrayBuffer = event.target.result;
+                const romData = new Uint8Array(arrayBuffer);
+                
+                // Mount ROM directly into virtual root space
+                Module.FS.writeFile('/rom.z64', romData);
+                STATUS_EL.innerText = "Running game...";
+                
+                // Dynamically spin up core engine thread script
+                const script = document.createElement('script');
+                script.src = 'mupen64plus.js'; 
+                document.body.appendChild(script);
+            };
+            
+            reader.readAsArrayBuffer(file);
+        });
+
+        // Event binder for explicit safety saves
+        document.getElementById('force-save').addEventListener('click', () => {
+            syncVirtualSaveToBrowser();
+            alert("Local storage data updated with latest game state.");
+        });
+
+        // Capture window close lifecycle actions
+        window.addEventListener('beforeunload', syncVirtualSaveToBrowser);
+    </script>
+</body>
+</html>
