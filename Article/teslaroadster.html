@@ -13,26 +13,26 @@
 
 <p style="text-align: left; font-family: sans-serif;">&nbsp;Sources:&nbsp;<a href="https://www.tesla.com/roadster">https://www.tesla.com/roadster</a></p>
 
-<!-- Responsive Flex Container for Text and Image -->
-<div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: center; margin: 20px 0; font-family: sans-serif;">
+<!-- Flex Container Adjustments -->
+<div style="display: flex; flex-wrap: wrap; gap: 40px; justify-content: space-between; align-items: flex-start; margin: 20px 0; font-family: sans-serif;">
   
-  <!-- Text Block (takes up remaining space) -->
-  <div style="flex: 1; min-width: 280px;">
+  <!-- Text Block limited to 55% width to prevent stretching across the screen -->
+  <div style="flex: 1; min-width: 280px; max-width: 550px;">
     <p>Elon Musk, owner of SpaceX and Tesla, after years of teasing, revealed the Tesla Roadster: a car that can go 0 - 60 in less than a second, can drive upside down, and most importantly, it can fly.</p>
     <p>It uses cold gas thrusters to bring it into the air, and it has suction fans on the bottom to stick to surfaces so it can go upside down.</p>
   </div>
   
-  <!-- Image Block (stays properly sized) -->
-  <div style="flex-shrink: 0; margin: 0 auto;">
-    <img src="https://www.autonocion.com/us/wp-content/uploads/2026/10/Tesla-Roadster-2026-3.jpg" width="300" height="200" style="display: block; border-radius: 4px;" alt="Tesla Roadster" />
+  <!-- Image Block aligns neatly to the right side of the section -->
+  <div style="flex-shrink: 0; margin-top: 10px;">
+    <img src="https://autonocion.com" width="300" height="200" style="display: block; border-radius: 4px;" alt="Tesla Roadster" />
   </div>
   
 </div>
 
 <hr />
 
-<!-- Responsive Video Container -->
 <h3 style="text-align: center; font-family: sans-serif;">Cool Video of it (not ai and not mine)</h3>
 <p style="text-align: center;">
+  <!-- Restored full https:// protocol to fix empty embed player block -->
   <iframe src="https://youtube.com" width="560" height="314" style="max-width: 100%; border: none;" allowfullscreen="allowfullscreen"></iframe>
 </p>
