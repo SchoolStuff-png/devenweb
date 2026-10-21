@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LEGO Star Wars - Game Boy Advance</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #121214;
+      color: #e0e0e0;
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* Controls Sidebar */
+    .sidebar {
+      width: 320px;
+      background-color: #1a1a1e;
+      border-right: 1px solid #2d2d35;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      box-shadow: 4px 0 12px rgba(0, 0, 0, 0.4);
+      z-index: 10;
+    }
+
+    .sidebar-header h1 {
+      font-size: 1.25rem;
+      color: #ffe81f; /* Star Wars yellow */
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .sidebar-header p {
+      font-size: 0.85rem;
+      color: #888;
+      margin-bottom: 20px;
+    }
+
+    .controls-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .control-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #24242a;
+      padding: 8px 12px;
+      border-radius: 6px;
+      border: 1px solid #33333d;
+    }
+
+    .control-label {
+      font-size: 0.88rem;
+      color: #ccc;
+    }
+
+    kbd {
+      background: #33333f;
+      color: #fff;
+      border: 1px solid #555565;
+      border-radius: 4px;
+      padding: 3px 8px;
+      font-family: monospace;
+      font-size: 0.85rem;
+      font-weight: bold;
+      box-shadow: 0 2px 0 rgba(0, 0, 0, 0.5);
+    }
+
+    .btn-fullscreen {
+      width: 100%;
+      padding: 12px;
+      margin-top: 20px;
+      background-color: #ffe81f;
+      color: #000;
+      font-weight: bold;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 1rem;
+      transition: background 0.2s ease, transform 0.1s ease;
+    }
+
+    .btn-fullscreen:hover {
+      background-color: #ffd700;
+    }
+
+    .btn-fullscreen:active {
+      transform: scale(0.98);
+    }
+
+    /* Game Viewport Area */
+    .game-container {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: #000;
+      position: relative;
+    }
+
+    #canvas {
+      width: 100%;
+      height: 100%;
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar displaying controls -->
+  <aside class="sidebar">
+    <div>
+      <div class="sidebar-header">
+        <h1>LEGO® Star Wars</h1>
+        <p>The Video Game (GBA)</p>
+      </div>
+
+      <div class="controls-list">
+        <div class="control-row">
+          <span class="control-label">D-Pad (Move)</span>
+          <kbd>Arrow Keys</kbd>
+        </div>
+        <div class="control-row">
+          <span class="control-label">A Button</span>
+          <kbd>X</kbd>
+        </div>
+        <div class="control-row">
+          <span class="control-label">B Button</span>
+          <kbd>Z</kbd>
+        </div>
+        <div class="control-row">
+          <span class="control-label">L Shoulder</span>
+          <kbd>Q</kbd>
+        </div>
+        <div class="control-row">
+          <span class="control-label">R Shoulder</span>
+          <kbd>W</kbd>
+        </div>
+        <div class="control-row">
+          <span class="control-label">Start Button</span>
+          <kbd>Enter</kbd>
+        </div>
+        <div class="control-row">
+          <span class="control-label">Select Button</span>
+          <kbd>Shift</kbd>
+        </div>
+        <div class="control-row">
+          <span class="control-label">RetroArch Menu</span>
+          <kbd>F1</kbd>
+        </div>
+        <div class="control-row">
+          <span class="control-label">Fast Forward</span>
+          <kbd>Space</kbd>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn-fullscreen" onclick="toggleFullscreen()">📺 Fullscreen</button>
+  </aside>
+
+  <!-- Game Screen -->
+  <main class="game-container" id="game-viewport">
+    <canvas id="canvas" oncontextmenu="event.preventDefault()"></canvas>
+  </main>
+
+  <!-- Emscripten / RetroArch Web Setup -->
+  <script>
+    const romFileName = "LEGO Star Wars - The Video Game (UE).gba";
+
+    var Module = {
+      noInitialRun: false,
+      arguments: ["-L", "vba_next.js", romFileName],
+      canvas: (function() {
+        var canvas = document.getElementById('canvas');
+        canvas.addEventListener("webglcontextlost", function(e) {
+          alert('WebGL context lost. Please refresh the page.');
+          e.preventDefault();
+        }, false);
+        return canvas;
+      })(),
+      preRun: [function() {
+        if (typeof FS !== 'undefined') {
+          // Preload the local ROM into Emscripten virtual file system
+          FS.createPreloadedFile('/', romFileName, romFileName, true, false);
+        }
+      }],
+      postRun: [],
+      print: function(text) { console.log(text); },
+      printErr: function(text) { console.error(text); }
+    };
+
+    function toggleFullscreen() {
+      const viewport = document.getElementById('game-viewport');
+      if (!document.fullscreenElement) {
+        if (viewport.requestFullscreen) {
+          viewport.requestFullscreen();
+        } else if (viewport.webkitRequestFullscreen) {
+          viewport.webkitRequestFullscreen();
+        } else if (viewport.msRequestFullscreen) {
+          viewport.msRequestFullscreen();
+        }
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        }
+      }
+    }
+  </script>
+
+  <!-- Load RetroArch VBA Next Core -->
+  <script async src="vba_next.js"></script>
+
+</body>
+</html>
