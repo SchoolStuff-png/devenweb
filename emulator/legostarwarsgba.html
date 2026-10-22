@@ -170,11 +170,19 @@
         statusLog.style.color = isError ? "#e74c3c" : "#2ecc71";
     }
 
-    // Module initialization configured for your working vba_next.js core
+    const canvasElement = document.getElementById('canvas');
+
+    // Force WebGL context readiness
+    var gl = canvasElement.getContext('webgl', { alpha: false, antialias: false }) || 
+             canvasElement.getContext('experimental-webgl', { alpha: false, antialias: false });
+
     var Module = {
         noInitialRun: false,
         arguments: [romFileName], 
-        canvas: document.getElementById('canvas'),
+        canvas: canvasElement,
+        
+        // Ensure webgl context is explicitly bound
+        ctx: gl,
         
         preRun: [function() {
             console.log("Loading ROM file into virtual filesystem...");
@@ -188,15 +196,16 @@
         }],
         
         postRun: [function() {
-            showStatus("Emulator loaded successfully! Click screen if audio/controls don't respond immediately.");
+            showStatus("Emulator loaded! Click screen to focus audio & controls.");
             restoreSaveFromStorage();
+            
+            // Force focus to the canvas to receive input instantly
+            canvasElement.focus();
         }]
     };
 
-    // Save/Restore functions for battery SRAM save data
     function saveToLocalStorage() {
         try {
-            // Save state data from virtual filesystem if present
             if (typeof FS !== 'undefined') {
                 const savePaths = [`/${romFileName}.sav`, `/legostarwars.sav`];
                 let saved = false;
@@ -208,15 +217,13 @@
                         localStorage.setItem(STORAGE_KEY_SAVE, base64Data);
                         saved = true;
                         break;
-                    } catch (e) {
-                        // File not found yet in FS, continue checking
-                    }
+                    } catch (e) {}
                 }
 
                 if (saved) {
                     showStatus("In-game save successfully backed up to LocalStorage!");
                 } else {
-                    showStatus("No in-game save file found yet. Save your game inside LEGO Star Wars first!", true);
+                    showStatus("No in-game save file found yet. Save inside LEGO Star Wars first!", true);
                 }
             }
         } catch (error) {
@@ -242,7 +249,6 @@
         }
     }
 
-    // Fullscreen behavior
     function toggleFullscreen() {
         const container = document.getElementById('emulator-container');
         if (!document.fullscreenElement) {
@@ -258,9 +264,6 @@
     document.getElementById('load-btn').addEventListener('click', restoreSaveFromStorage);
     document.getElementById('fullscreen-btn').addEventListener('click', toggleFullscreen);
 </script>
-
-<!-- Asynchronously load the emulator script matching your original setup -->
-<script async src="vba_next.js"></script>
 
 </body>
 </html>
