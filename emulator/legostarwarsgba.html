@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LEGO Star Wars - Game Boy Advance Emulator</title>
+    <title>LEGO Star Wars</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -21,7 +21,7 @@
             text-align: center;
         }
         h1 {
-            color: #ffe81f; /* Star Wars Yellow */
+            color: #ffe81f;
             margin-bottom: 5px;
         }
         h2 {
@@ -42,51 +42,17 @@
             position: relative;
             box-shadow: 0 10px 25px rgba(0,0,0,0.5);
         }
-        .placeholder-text {
-            color: #666;
-            font-size: 1rem;
+        /* Fix: Ensures canvas scales correctly in fullscreen */
+        #emulator-container:fullscreen {
+            width: 100vw;
+            height: 100vh;
+            border: none;
+            border-radius: 0;
         }
-        .controls-canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
+        canvas {
             width: 100%;
             height: 100%;
-        }
-        .panel {
-            background-color: #1e1e1e;
-            border-radius: 8px;
-            padding: 15px;
-            margin-top: 15px;
-            text-align: left;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-        }
-        .panel h3 {
-            margin-top: 0;
-            color: #ffe81f;
-            border-bottom: 1px solid #333;
-            padding-bottom: 5px;
-        }
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
-        }
-        .key-mapping {
-            display: flex;
-            justify-content: space-between;
-            background: #2a2a2a;
-            padding: 6px 12px;
-            border-radius: 4px;
-            font-size: 0.9rem;
-        }
-        .key {
-            background: #444;
-            padding: 2px 6px;
-            border-radius: 3px;
-            font-family: monospace;
-            font-weight: bold;
-            color: #ffe81f;
+            display: block;
         }
         .btn-group {
             margin-top: 15px;
@@ -105,26 +71,26 @@
             cursor: pointer;
             transition: background 0.2s, transform 0.1s;
         }
-        button:hover {
-            background-color: #e6cf1c;
-            transform: translateY(-1px);
-        }
-        button:active {
-            transform: translateY(1px);
-        }
-        button.secondary {
-            background-color: #444;
-            color: #fff;
-        }
-        button.secondary:hover {
-            background-color: #555;
-        }
+        button:hover { background-color: #e6cf1c; }
+        button.secondary { background-color: #444; color: #fff; }
+        button.secondary:hover { background-color: #555; }
         .status-message {
             margin-top: 10px;
             font-size: 0.9rem;
             color: #2ecc71;
             min-height: 20px;
         }
+        .panel {
+            background-color: #1e1e1e;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+            text-align: left;
+        }
+        .panel h3 { margin-top: 0; color: #ffe81f; border-bottom: 1px solid #333; padding-bottom: 5px; }
+        .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+        .key-mapping { display: flex; justify-content: space-between; background: #2a2a2a; padding: 6px 12px; border-radius: 4px; font-size: 0.9rem; }
+        .key { background: #444; padding: 2px 6px; border-radius: 3px; font-family: monospace; font-weight: bold; color: #ffe81f; }
     </style>
 </head>
 <body>
@@ -134,17 +100,15 @@
     <h2>The Video Game (GBA)</h2>
 
     <div id="emulator-container">
-        <!-- In a live environment, the emulator canvas / iframe initializes here -->
-        <div class="placeholder-text" id="emu-status">Emulator Core Loaded. Ready to play!</div>
+        <!-- Fix: Replaced placeholder text with the actual rendering canvas -->
+        <canvas id="canvas" tabindex="-1"></canvas>
     </div>
 
     <div class="btn-group">
-        <button id="save-btn">💾 Save State to LocalStorage</button>
-        <button id="load-btn" class="secondary">📂 Load State from LocalStorage</button>
         <button id="fullscreen-btn" class="secondary">📺 Fullscreen</button>
     </div>
     
-    <div class="status-message" id="status-log"></div>
+    <div class="status-message" id="status-log">Loading ROM...</div>
 
     <div class="panel">
         <h3>Controls Configuration</h3>
@@ -156,69 +120,55 @@
             <div class="key-mapping"><span>R Shoulder</span><span class="key">W</span></div>
             <div class="key-mapping"><span>Start Button</span><span class="key">Enter</span></div>
             <div class="key-mapping"><span>Select Button</span><span class="key">Shift</span></div>
-            <div class="key-mapping"><span>RetroArch Menu</span><span class="key">F1</span></div>
-            <div class="key-mapping"><span>Fast Forward</span><span class="key">Space</span></div>
         </div>
     </div>
 </div>
 
 <script>
-    // State storage keys
-    const STORAGE_KEY_SAVE = "lego_starwars_gba_save";
     const statusLog = document.getElementById('status-log');
-
-    // Simulated ROM/Emulator memory structure for persistence demonstration
-    let emulatorState = {
-        game: "LEGO Star Wars - GBA",
-        timestamp: null,
-        gameSaveData: "BASE64_SRAM_OR_STATE_DATA_STREAM_HERE" 
-    };
+    const romFile = "LEGO Star Wars - The Video Game (UE).gba";
+    const coreFile = "vba_next.js";
 
     function showStatus(message, isError = false) {
         statusLog.textContent = message;
         statusLog.style.color = isError ? "#e74c3c" : "#2ecc71";
-        setTimeout(() => {
-            statusLog.textContent = "";
-        }, 4000);
     }
 
-    // Function to Save Progress to Local Storage
-    function saveToLocalStorage() {
-        try {
-            // Update timestamp
-            emulatorState.timestamp = new Date().toISOString();
-            
-            // In a real RetroArch/libretro web implementation, you would extract the file system array or RAM state:
-            // Example: const saveArray = FS.readFile('/home/webuser/retroarch/userdata/saves/rom.srm');
-            // Stringify and save data 
-            localStorage.setItem(STORAGE_KEY_SAVE, JSON.stringify(emulatorState));
-            
-            showStatus("Progress successfully saved to Local Storage!");
-            console.log("Saved state updated at: " + emulatorState.timestamp);
-        } catch (error) {
-            console.error("Failed to save to local storage:", error);
-            showStatus("Error: local storage quota exceeded or disabled.", true);
-        }
-    }
+    // Fix: Emscripten Module setup to mount the ROM and link the canvas
+    var Module = {
+        canvas: document.getElementById('canvas'),
+        arguments: ['/game.gba'], // The virtual path RetroArch will load
+        preRun: [],
+        postRun: [],
+        print: (function() {
+            return function(text) { console.log(text); };
+        })(),
+        printErr: function(text) { console.error(text); }
+    };
 
-    // Function to Load Progress from Local Storage
-    function loadFromLocalStorage() {
+    // Fix: Fetch the ROM asynchronously, inject it into the virtual filesystem, then load the emulator core
+    async function loadGame() {
         try {
-            const savedData = localStorage.getItem(STORAGE_KEY_SAVE);
-            if (!savedData) {
-                showStatus("No saved state found in local storage.", true);
-                return;
-            }
+            const response = await fetch(romFile);
+            if (!response.ok) throw new Error("ROM not found. Ensure the filename matches exactly.");
             
-            const parsedState = JSON.parse(savedData);
-            // In a real RetroArch environment, you write back to the Virtual FS:
-            // FS.writeFile('/home/webuser/retroarch/userdata/saves/rom.srm', new Uint8Array(parsedState.gameSaveData));
-            
-            console.log("Loaded save state from: " + parsedState.timestamp);
-            showStatus("Progress successfully loaded from Local Storage!");
+            const buffer = await response.arrayBuffer();
+            const romData = new Uint8Array(buffer);
+
+            // Instruct Emscripten to create the virtual file right before running
+            Module.preRun.push(function() {
+                FS.createDataFile('/', 'game.gba', romData, true, true);
+            });
+
+            // Load the emulator core script
+            const script = document.createElement('script');
+            script.src = coreFile;
+            script.onload = () => showStatus("Emulator running.");
+            script.onerror = () => showStatus("Error loading vba_next.js.", true);
+            document.body.appendChild(script);
+
         } catch (error) {
-            console.error("Failed to load from local storage:", error);
-            showStatus("Error loading saved state file.", true);
+            showStatus(error.message, true);
         }
     }
 
@@ -234,18 +184,10 @@
         }
     }
 
-    // Event Listeners
-    document.getElementById('save-btn').addEventListener('click', saveToLocalStorage);
-    document.getElementById('load-btn').addEventListener('click', loadFromLocalStorage);
     document.getElementById('fullscreen-btn').addEventListener('click', toggleFullscreen);
 
-    // Auto-load save if it exists on boot
-    window.addEventListener('DOMContentLoaded', () => {
-        if(localStorage.getItem(STORAGE_KEY_SAVE)) {
-            console.log("Found existing save file. Auto-restoring sequence active.");
-            loadFromLocalStorage();
-        }
-    });
+    // Initialize game load sequence
+    loadGame();
 </script>
 
 </body>
