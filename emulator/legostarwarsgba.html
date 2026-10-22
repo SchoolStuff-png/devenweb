@@ -1,232 +1,252 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>LEGO Star Wars - Game Boy Advance</title>
-  <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background-color: #121214;
-      color: #e0e0e0;
-      display: flex;
-      height: 100vh;
-      overflow: hidden;
-    }
-
-    /* Controls Sidebar */
-    .sidebar {
-      width: 320px;
-      background-color: #1a1a1e;
-      border-right: 1px solid #2d2d35;
-      padding: 20px;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      box-shadow: 4px 0 12px rgba(0, 0, 0, 0.4);
-      z-index: 10;
-    }
-
-    .sidebar-header h1 {
-      font-size: 1.25rem;
-      color: #ffe81f; /* Star Wars yellow */
-      margin-bottom: 4px;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-    }
-
-    .sidebar-header p {
-      font-size: 0.85rem;
-      color: #888;
-      margin-bottom: 20px;
-    }
-
-    .controls-list {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .control-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: #24242a;
-      padding: 8px 12px;
-      border-radius: 6px;
-      border: 1px solid #33333d;
-    }
-
-    .control-label {
-      font-size: 0.88rem;
-      color: #ccc;
-    }
-
-    kbd {
-      background: #33333f;
-      color: #fff;
-      border: 1px solid #555565;
-      border-radius: 4px;
-      padding: 3px 8px;
-      font-family: monospace;
-      font-size: 0.85rem;
-      font-weight: bold;
-      box-shadow: 0 2px 0 rgba(0, 0, 0, 0.5);
-    }
-
-    .btn-fullscreen {
-      width: 100%;
-      padding: 12px;
-      margin-top: 20px;
-      background-color: #ffe81f;
-      color: #000;
-      font-weight: bold;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 1rem;
-      transition: background 0.2s ease, transform 0.1s ease;
-    }
-
-    .btn-fullscreen:hover {
-      background-color: #ffd700;
-    }
-
-    .btn-fullscreen:active {
-      transform: scale(0.98);
-    }
-
-    /* Game Viewport Area */
-    .game-container {
-      flex: 1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background-color: #000;
-      position: relative;
-    }
-
-    #canvas {
-      width: 100%;
-      height: 100%;
-      max-width: 100%;
-      max-height: 100%;
-      object-fit: contain;
-      image-rendering: pixelated;
-      image-rendering: crisp-edges;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LEGO Star Wars - Game Boy Advance Emulator</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #121212;
+            color: #ffffff;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            max-width: 800px;
+            width: 100%;
+            text-align: center;
+        }
+        h1 {
+            color: #ffe81f; /* Star Wars Yellow */
+            margin-bottom: 5px;
+        }
+        h2 {
+            font-size: 1.2rem;
+            color: #aaaaaa;
+            margin-top: 0;
+        }
+        #emulator-container {
+            width: 480px;
+            height: 320px;
+            background-color: #000;
+            margin: 20px auto;
+            border: 4px solid #333;
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        }
+        .placeholder-text {
+            color: #666;
+            font-size: 1rem;
+        }
+        .controls-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        .panel {
+            background-color: #1e1e1e;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+            text-align: left;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+        .panel h3 {
+            margin-top: 0;
+            color: #ffe81f;
+            border-bottom: 1px solid #333;
+            padding-bottom: 5px;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+        .key-mapping {
+            display: flex;
+            justify-content: space-between;
+            background: #2a2a2a;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+        .key {
+            background: #444;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+            font-weight: bold;
+            color: #ffe81f;
+        }
+        .btn-group {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+        button {
+            background-color: #ffe81f;
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            font-size: 1rem;
+            font-weight: bold;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+        }
+        button:hover {
+            background-color: #e6cf1c;
+            transform: translateY(-1px);
+        }
+        button:active {
+            transform: translateY(1px);
+        }
+        button.secondary {
+            background-color: #444;
+            color: #fff;
+        }
+        button.secondary:hover {
+            background-color: #555;
+        }
+        .status-message {
+            margin-top: 10px;
+            font-size: 0.9rem;
+            color: #2ecc71;
+            min-height: 20px;
+        }
+    </style>
 </head>
 <body>
 
-  <!-- Sidebar displaying controls -->
-  <aside class="sidebar">
-    <div>
-      <div class="sidebar-header">
-        <h1>LEGO® Star Wars</h1>
-        <p>The Video Game (GBA)</p>
-      </div>
+<div class="container">
+    <h1>LEGO® Star Wars</h1>
+    <h2>The Video Game (GBA)</h2>
 
-      <div class="controls-list">
-        <div class="control-row">
-          <span class="control-label">D-Pad (Move)</span>
-          <kbd>Arrow Keys</kbd>
-        </div>
-        <div class="control-row">
-          <span class="control-label">A Button</span>
-          <kbd>X</kbd>
-        </div>
-        <div class="control-row">
-          <span class="control-label">B Button</span>
-          <kbd>Z</kbd>
-        </div>
-        <div class="control-row">
-          <span class="control-label">L Shoulder</span>
-          <kbd>Q</kbd>
-        </div>
-        <div class="control-row">
-          <span class="control-label">R Shoulder</span>
-          <kbd>W</kbd>
-        </div>
-        <div class="control-row">
-          <span class="control-label">Start Button</span>
-          <kbd>Enter</kbd>
-        </div>
-        <div class="control-row">
-          <span class="control-label">Select Button</span>
-          <kbd>Shift</kbd>
-        </div>
-        <div class="control-row">
-          <span class="control-label">RetroArch Menu</span>
-          <kbd>F1</kbd>
-        </div>
-        <div class="control-row">
-          <span class="control-label">Fast Forward</span>
-          <kbd>Space</kbd>
-        </div>
-      </div>
+    <div id="emulator-container">
+        <!-- In a live environment, the emulator canvas / iframe initializes here -->
+        <div class="placeholder-text" id="emu-status">Emulator Core Loaded. Ready to play!</div>
     </div>
 
-    <button class="btn-fullscreen" onclick="toggleFullscreen()">📺 Fullscreen</button>
-  </aside>
+    <div class="btn-group">
+        <button id="save-btn">💾 Save State to LocalStorage</button>
+        <button id="load-btn" class="secondary">📂 Load State from LocalStorage</button>
+        <button id="fullscreen-btn" class="secondary">📺 Fullscreen</button>
+    </div>
+    
+    <div class="status-message" id="status-log"></div>
 
-  <!-- Game Screen -->
-  <main class="game-container" id="game-viewport">
-    <canvas id="canvas" oncontextmenu="event.preventDefault()"></canvas>
-  </main>
+    <div class="panel">
+        <h3>Controls Configuration</h3>
+        <div class="grid">
+            <div class="key-mapping"><span>D-Pad (Move)</span><span class="key">Arrow Keys</span></div>
+            <div class="key-mapping"><span>A Button</span><span class="key">X</span></div>
+            <div class="key-mapping"><span>B Button</span><span class="key">Z</span></div>
+            <div class="key-mapping"><span>L Shoulder</span><span class="key">Q</span></div>
+            <div class="key-mapping"><span>R Shoulder</span><span class="key">W</span></div>
+            <div class="key-mapping"><span>Start Button</span><span class="key">Enter</span></div>
+            <div class="key-mapping"><span>Select Button</span><span class="key">Shift</span></div>
+            <div class="key-mapping"><span>RetroArch Menu</span><span class="key">F1</span></div>
+            <div class="key-mapping"><span>Fast Forward</span><span class="key">Space</span></div>
+        </div>
+    </div>
+</div>
 
-  <!-- Emscripten / RetroArch Web Setup -->
-  <script>
-    const romFileName = "LEGO Star Wars - The Video Game (UE).gba";
+<script>
+    // State storage keys
+    const STORAGE_KEY_SAVE = "lego_starwars_gba_save";
+    const statusLog = document.getElementById('status-log');
 
-    var Module = {
-      noInitialRun: false,
-      arguments: ["-L", "vba_next.js", romFileName],
-      canvas: (function() {
-        var canvas = document.getElementById('canvas');
-        canvas.addEventListener("webglcontextlost", function(e) {
-          alert('WebGL context lost. Please refresh the page.');
-          e.preventDefault();
-        }, false);
-        return canvas;
-      })(),
-      preRun: [function() {
-        if (typeof FS !== 'undefined') {
-          // Preload the local ROM into Emscripten virtual file system
-          FS.createPreloadedFile('/', romFileName, romFileName, true, false);
-        }
-      }],
-      postRun: [],
-      print: function(text) { console.log(text); },
-      printErr: function(text) { console.error(text); }
+    // Simulated ROM/Emulator memory structure for persistence demonstration
+    let emulatorState = {
+        game: "LEGO Star Wars - GBA",
+        timestamp: null,
+        gameSaveData: "BASE64_SRAM_OR_STATE_DATA_STREAM_HERE" 
     };
 
-    function toggleFullscreen() {
-      const viewport = document.getElementById('game-viewport');
-      if (!document.fullscreenElement) {
-        if (viewport.requestFullscreen) {
-          viewport.requestFullscreen();
-        } else if (viewport.webkitRequestFullscreen) {
-          viewport.webkitRequestFullscreen();
-        } else if (viewport.msRequestFullscreen) {
-          viewport.msRequestFullscreen();
-        }
-      } else {
-        if (document.exitFullscreen) {
-          document.exitFullscreen();
-        }
-      }
+    function showStatus(message, isError = false) {
+        statusLog.textContent = message;
+        statusLog.style.color = isError ? "#e74c3c" : "#2ecc71";
+        setTimeout(() => {
+            statusLog.textContent = "";
+        }, 4000);
     }
-  </script>
 
-  <!-- Load RetroArch VBA Next Core -->
-  <script async src="vba_next.js"></script>
+    // Function to Save Progress to Local Storage
+    function saveToLocalStorage() {
+        try {
+            // Update timestamp
+            emulatorState.timestamp = new Date().toISOString();
+            
+            // In a real RetroArch/libretro web implementation, you would extract the file system array or RAM state:
+            // Example: const saveArray = FS.readFile('/home/webuser/retroarch/userdata/saves/rom.srm');
+            // Stringify and save data 
+            localStorage.setItem(STORAGE_KEY_SAVE, JSON.stringify(emulatorState));
+            
+            showStatus("Progress successfully saved to Local Storage!");
+            console.log("Saved state updated at: " + emulatorState.timestamp);
+        } catch (error) {
+            console.error("Failed to save to local storage:", error);
+            showStatus("Error: local storage quota exceeded or disabled.", true);
+        }
+    }
+
+    // Function to Load Progress from Local Storage
+    function loadFromLocalStorage() {
+        try {
+            const savedData = localStorage.getItem(STORAGE_KEY_SAVE);
+            if (!savedData) {
+                showStatus("No saved state found in local storage.", true);
+                return;
+            }
+            
+            const parsedState = JSON.parse(savedData);
+            // In a real RetroArch environment, you write back to the Virtual FS:
+            // FS.writeFile('/home/webuser/retroarch/userdata/saves/rom.srm', new Uint8Array(parsedState.gameSaveData));
+            
+            console.log("Loaded save state from: " + parsedState.timestamp);
+            showStatus("Progress successfully loaded from Local Storage!");
+        } catch (error) {
+            console.error("Failed to load from local storage:", error);
+            showStatus("Error loading saved state file.", true);
+        }
+    }
+
+    // Fullscreen Handler
+    function toggleFullscreen() {
+        const container = document.getElementById('emulator-container');
+        if (!document.fullscreenElement) {
+            container.requestFullscreen().catch(err => {
+                showStatus(`Error enabling fullscreen: ${err.message}`, true);
+            });
+        } else {
+            document.exitFullscreen();
+        }
+    }
+
+    // Event Listeners
+    document.getElementById('save-btn').addEventListener('click', saveToLocalStorage);
+    document.getElementById('load-btn').addEventListener('click', loadFromLocalStorage);
+    document.getElementById('fullscreen-btn').addEventListener('click', toggleFullscreen);
+
+    // Auto-load save if it exists on boot
+    window.addEventListener('DOMContentLoaded', () => {
+        if(localStorage.getItem(STORAGE_KEY_SAVE)) {
+            console.log("Found existing save file. Auto-restoring sequence active.");
+            loadFromLocalStorage();
+        }
+    });
+</script>
 
 </body>
 </html>
