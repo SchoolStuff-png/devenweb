@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title> Star Wars</title>
+    <title>Lego Star Wars</title>
     <style>
         body {
             margin: 0;
@@ -15,13 +15,71 @@
             align-items: center;
             justify-content: center;
             min-height: 100vh;
+            overflow: hidden;
         }
-        #canvas {
+        .container {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        #canvas-wrapper {
+            position: relative;
             border: 2px solid #444;
             background-color: #000;
-            max-width: 100%;
-            height: auto;
+            width: 600px;
+            max-width: 100vw;
             aspect-ratio: 3 / 2; /* GBA aspect ratio */
+        }
+        #canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        #loading-notice {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(17, 17, 17, 0.9);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            text-align: center;
+            padding: 20px;
+            box-sizing: border-box;
+            transition: opacity 0.5s ease;
+        }
+        .spinner {
+            border: 4px solid rgba(255,255,255,0.1);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border-left-color: #09d;
+            animation: spin 1s linear infinite;
+            margin-bottom: 15px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .ui-buttons {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+        }
+        button {
+            background-color: #222;
+            color: #fff;
+            border: 1px solid #555;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-weight: bold;
+            border-radius: 4px;
+        }
+        button:hover {
+            background-color: #333;
+            border-color: #09d;
         }
         .controls {
             margin-top: 15px;
@@ -33,21 +91,55 @@
 </head>
 <body>
 
-    <canvas id="canvas" oncontextmenu="event.preventDefault()"></canvas>
-    
-    <div class="controls">
-        <p><strong>Controls:</strong> Arrow Keys = D-Pad | Z = A | X = B | A = L | S = R | Enter = Start | Shift = Select</p>
+    <div class="container">
+        <div id="canvas-wrapper">
+            <!-- Loading Notice Screen -->
+            <div id="loading-notice">
+                <div class="spinner"></div>
+                <h3>Loading Lego Star Wars...</h3>
+                <p>Please wait. Preparing core files and data. This may take a minute.</p>
+            </div>
+            
+            <canvas id="canvas" oncontextmenu="event.preventDefault()"></canvas>
+        </div>
+        
+        <div class="ui-buttons">
+            <button id="fullscreen-btn">Go Fullscreen</button>
+        </div>
+        
+        <div class="controls">
+            <p><strong>Controls:</strong> Arrow Keys = D-Pad | Z = A | X = B | A = L | S = R | Enter = Start | Shift = Select</p>
+        </div>
     </div>
 
     <script>
-        // Setup the Module object required by Emscripten (RetroArch web core)
+        const loadingNotice = document.getElementById('loading-notice');
+        const fullscreenBtn = document.getElementById('fullscreen-btn');
+        const canvasWrapper = document.getElementById('canvas-wrapper');
+
+        // Setup the Module object for the Libretro WebAssembly core
         var Module = {
             noInitialRun: false,
-            arguments: ["/legostarwars.gba"], // Directs RetroArch to auto-load the rom from the virtual filesystem
+            arguments: ["/legostarwars.gba"], 
             canvas: document.getElementById('canvas'),
             
             preRun: [function() {
-                // Fetch the local GBA file and write it to Emscripten's virtual filesystem
+                // 1. Mount the IndexedDB browser storage onto the virtual file system
+                // RetroArch saves will reside in '/home/web_user/retroarch/userdata/saves'
+                FS.mkdir('/home/web_user');
+                FS.mkdir('/home/web_user/retroarch');
+                FS.mkdir('/home/web_user/retroarch/userdata');
+                FS.mkdir('/home/web_user/retroarch/userdata/saves');
+                
+                FS.mount(IDBFS, {}, '/home/web_user/retroarch/userdata/saves');
+
+                // 2. Sync existing saves FROM browser storage down into the running game
+                FS.syncfs(true, function (err) {
+                    if (err) console.error("Error syncing from storage:", err);
+                    else console.log("Save files synchronized from local storage successfully.");
+                });
+
+                // 3. Preload the ROM file from the same directory
                 try {
                     Module.FS_createPreloadedFile('/', 'legostarwars.gba', 'legostarwars.gba', true, false);
                 } catch(e) {
@@ -55,11 +147,42 @@
                 }
             }],
             
-            postRun: [],
+            postRun: [function() {
+                // Hide the loading notice when the runtime engine initializes
+                loadingNotice.style.opacity = 0;
+                setTimeout(() => loadingNotice.style.display = 'none', 500);
+
+                // Set up auto-saving back to browser storage every 15 seconds
+                setInterval(function() {
+                    FS.syncfs(false, function (err) {
+                        if (err) console.error("Auto-save sync failed:", err);
+                    });
+                }, 15000);
+            }],
             
             print: function(text) { console.log(text); },
             printErr: function(text) { console.error(text); }
         };
+
+        // Fullscreen Handling
+        fullscreenBtn.addEventListener('click', () => {
+            if (!document.fullscreenElement) {
+                canvasWrapper.requestFullscreen().catch(err => {
+                    alert(`Error attempting to enable full-screen mode: ${err.message}`);
+                });
+            } else {
+                document.exitFullscreen();
+            }
+        });
+
+        // Listen for browser fullscreen adjustments
+        document.addEventListener('fullscreenchange', () => {
+            if (document.fullscreenElement) {
+                fullscreenBtn.textContent = "Exit Fullscreen";
+            } else {
+                fullscreenBtn.textContent = "Go Fullscreen";
+            }
+        });
     </script>
 
     <!-- Load the RetroArch Emscripten core script -->
